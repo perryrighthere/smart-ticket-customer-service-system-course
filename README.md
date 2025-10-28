@@ -1,4 +1,4 @@
-# AstraTickets · Lesson 1
+# AstraTickets
 
 > 企业级 AI 智能客服工单系统教学项目 — 第 1 节：项目启动与架构设计
 
