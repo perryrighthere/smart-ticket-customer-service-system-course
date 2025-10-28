@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astratickets-backend"
+version = "0.1.0"
+description = "Lesson 1 FastAPI scaffold for the AstraTickets customer service system."
+authors = [{name = "Perry"}]
+readme = "../README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.23",
+  "pydantic>=2.4",
+  "pydantic-settings>=2.0",
+  "sqlalchemy>=2.0",
+  "aiosqlite>=0.19",
+  "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+  "httpx>=0.24",
+  "ruff>=0.5",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

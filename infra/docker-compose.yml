@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: ../backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment:
+      - ENVIRONMENT=development
+    ports:
+      - '8000:8000'
+    volumes:
+      - ../backend:/app
+
+  frontend:
+    image: node:20-bullseye-slim
+    working_dir: /usr/src/app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - '5173:5173'
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ../frontend:/usr/src/app
+      - frontend_node_modules:/usr/src/app/node_modules
+    depends_on:
+      - backend
+
+  chroma:
+    image: ghcr.io/chroma-core/chroma:latest
+    ports:
+      - '8001:8000'
+    volumes:
+      - chroma_data:/chroma/.chromadb
+
+volumes:
+  chroma_data:
+  frontend_node_modules:
