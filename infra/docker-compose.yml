@@ -18,6 +18,7 @@ services:
       - '5173:5173'
     environment:
       - NODE_ENV=development
+      - VITE_API_TARGET=http://backend:8000
     volumes:
       - ../frontend:/usr/src/app
       - frontend_node_modules:/usr/src/app/node_modules

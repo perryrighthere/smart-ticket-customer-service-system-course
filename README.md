@@ -8,15 +8,26 @@ AstraTickets 是一个覆盖 **"来单 → 分类 → 检索 → AI 首答 → �
 
 ## 核心功能
 
+### 当前功能
+
 - **用户管理**: 创建、查询、列表
-- **工单管理**: CRUD、状态跟踪、优先级管理、标签分类
+- **工单管理**: 完整的 CRUD 操作、状态跟踪、优先级管理、标签分类
 - **工单回复**: 多轮对话支持
 - **数据过滤与分页**: 支持按状态、优先级、提交人筛选
-- **RAG 知识库检索**: 基于 Chroma + SentenceTransformers (开发中)
-- **AI 智能分类**: 自动工单分类 (开发中)
-- **AI 智能回复**: LLM 自动生成初步回复 (开发中)
-- **人工协同**: AI 建议 + 人工审核修改 (开发中)
-- **统计看板**: 工单趋势、响应时间、满意度分析 (开发中)
+- **前端界面**:
+  - Dashboard 仪表盘（实时统计）
+  - 工单列表页（过滤、分页、状态标签）
+  - 创建工单页（表单验证、用户选择）
+  - 工单详情页（查看、编辑、删除、回复管理）
+  - 响应式布局和导航系统
+
+### 规划中功能
+
+- **RAG 知识库检索**: 基于 Chroma + SentenceTransformers 的向量检索
+- **AI 智能分类**: 自动工单分类和路由
+- **AI 智能回复**: LLM 驱动的自动回复生成
+- **人工协同**: AI 建议与人工审核结合
+- **统计看板**: 工单趋势分析、响应时间统计、满意度分析
 
 ## 技术架构
 
@@ -31,8 +42,11 @@ AstraTickets 是一个覆盖 **"来单 → 分类 → 检索 → AI 首答 → �
 - **框架**: React 18
 - **构建工具**: Vite
 - **语言**: TypeScript
-- **UI 库**: Ant Design
-- **状态管理**: React Context / Zustand (待接入)
+- **UI 库**: Ant Design 5
+- **路由**: React Router DOM 6
+- **HTTP 客户端**: Axios
+- **状态管理**: React Hooks (useState, useEffect)
+- **代码风格**: ESLint + Prettier
 
 ### AI/数据模块
 - **向量数据库**: Chroma
@@ -48,13 +62,55 @@ AstraTickets 是一个覆盖 **"来单 → 分类 → 检索 → AI 首答 → �
 ## 项目结构
 ```
 .
-├── backend/          # FastAPI 应用、配置、健康检查示例 + Lesson 2 CRUD
-├── frontend/         # Vite + React + AntD 控制台骨架
-├── infra/            # docker-compose，统一拉起前后端 + Chroma
-├── scripts/          # 环境初始化脚本
-├── docs/             # Lesson 1 架构说明
-├── 项目介绍.md / 课程大纲.md
-└── AGENTS.md         # 仓库协作规范
+├── backend/                        # FastAPI 后端应用
+│   ├── app/
+│   │   ├── main.py                 # FastAPI 应用入口
+│   │   ├── core/                   # 核心配置模块
+│   │   │   └── config.py           # Pydantic Settings 配置
+│   │   ├── db/                     # 数据库模块
+│   │   │   ├── models.py           # SQLAlchemy 数据模型
+│   │   │   └── session.py          # 数据库会话管理
+│   │   ├── schemas/                # Pydantic Schemas
+│   │   │   ├── ticket.py           # 工单相关 schemas
+│   │   │   └── user.py             # 用户相关 schemas
+│   │   └── api/                    # API 路由
+│   │       ├── router.py           # 主路由聚合
+│   │       ├── tickets.py          # 工单 CRUD 接口
+│   │       └── users.py            # 用户 CRUD 接口
+│   ├── tests/                      # 测试代码
+│   ├── requirements.txt            # Python 依赖
+│   └── .env.example                # 环境变量模板
+├── frontend/                       # React 前端应用
+│   ├── src/
+│   │   ├── main.tsx                # 前端入口
+│   │   ├── App.tsx                 # 路由配置
+│   │   ├── types/                  # TypeScript 类型定义
+│   │   │   └── index.ts            # API 类型定义
+│   │   ├── api/                    # API 服务层
+│   │   │   ├── client.ts           # Axios 实例
+│   │   │   ├── tickets.ts          # 工单 API
+│   │   │   └── users.ts            # 用户 API
+│   │   ├── components/             # 公共组件
+│   │   │   └── AppLayout.tsx       # 应用布局和导航
+│   │   └── pages/                  # 页面组件
+│   │       ├── Home.tsx            # 首页
+│   │       ├── TicketList.tsx      # 工单列表页
+│   │       ├── CreateTicket.tsx    # 创建工单页
+│   │       └── TicketDetail.tsx    # 工单详情页
+│   ├── package.json                # npm 依赖
+│   └── vite.config.ts              # Vite 配置（含代理）
+├── infra/                          # 基础设施配置
+│   └── docker-compose.yml          # Docker Compose 编排
+├── scripts/                        # 工具脚本
+│   └── bootstrap.sh                # 环境初始化脚本
+├── docs/                           # 项目文档
+│   ├── lesson-1.md                 # 开发指南：项目启动
+│   ├── lesson-2.md                 # 开发指南：后端实现
+│   └── lesson-3.md                 # 开发指南：前端实现
+├── 项目介绍.md                      # 项目背景与愿景
+├── 课程大纲.md                      # 开发路线图
+├── AGENTS.md                       # 代码规范与协作流程
+└── README.md                       # 本文件
 ```
 
 ## 快速开始
@@ -94,12 +150,72 @@ AstraTickets 是一个覆盖 **"来单 → 分类 → 检索 → AI 首答 → �
    ```
    前端将运行在 `http://localhost:5173`
 
+   **前端页面导航**:
+   - 首页: `http://localhost:5173/`
+   - 工单列表: `http://localhost:5173/tickets`
+   - 创建工单: `http://localhost:5173/tickets/new`
+   - 工单详情: `http://localhost:5173/tickets/{id}`
+
 5. **一键启动全栈** (可选，使用 Docker)
    ```bash
    make dev-up
    ```
    > 首次执行会构建镜像并安装依赖，完成后前端/后端/Chroma 将同时启动。
    > 停止服务: `make dev-down`
+
+## 前端功能
+
+### 工单列表页面 (`/tickets`)
+
+- **功能特性**:
+  - 表格展示所有工单（ID、标题、状态、优先级、标签、创建时间）
+  - 状态过滤器（Open, In Progress, Resolved, Closed）
+  - 优先级过滤器（Low, Medium, High, Urgent）
+  - 分页器（可调整每页显示条数）
+  - 状态和优先级使用彩色标签展示
+  - 点击标题或 "View" 按钮跳转到详情页
+
+- **操作**:
+  - 点击 "New Ticket" 按钮创建新工单
+  - 点击 "Refresh" 按钮刷新列表
+  - 使用过滤器筛选工单
+
+### 创建工单页面 (`/tickets/new`)
+
+- **表单字段**:
+  - 标题（必填）：工单简要描述
+  - 内容（必填）：详细问题描述
+  - 提交人（必填）：从下拉列表选择已有用户
+  - 状态：默认 Open，可选其他状态
+  - 优先级：默认 Medium，可选其他级别
+  - 标签：逗号分隔的标签列表
+
+- **功能**:
+  - 实时表单验证
+  - 提交成功后自动跳转到新工单详情页
+  - 显示错误提示（如提交人不存在）
+
+### 工单详情页面 (`/tickets/{id}`)
+
+- **查看功能**:
+  - 完整工单信息展示
+  - 所有回复列表（按时间顺序）
+  - 显示提交人和回复作者信息
+
+- **编辑功能**:
+  - 点击 "Edit" 按钮打开编辑模态框
+  - 支持部分更新（只更新填写的字段）
+  - 更新后自动刷新页面
+
+- **删除功能**:
+  - 点击 "Delete" 按钮弹出确认对话框
+  - 确认后删除工单并返回列表页
+  - 后端自动级联删除所有相关回复
+
+- **回复功能**:
+  - 选择回复作者
+  - 输入回复内容
+  - 提交后自动刷新回复列表
 
 ## API 文档
 
@@ -196,6 +312,8 @@ curl -X PUT "http://localhost:8000/api/tickets/1" \
 ### 运行后端测试
 ```bash
 make test-backend
+# 或
+cd backend && pytest tests/ -v
 ```
 
 测试覆盖:
@@ -203,8 +321,22 @@ make test-backend
 - 工单 CRUD (包含过滤、分页)
 - 工单回复
 - 级联删除 (删除工单时自动删除相关回复)
+- 外键约束验证
 
 完整测试用例: `backend/tests/test_tickets_crud.py`
+
+### 前端开发测试
+
+```bash
+# 开发模式（带热更新）
+cd frontend && npm run dev
+
+# 类型检查
+cd frontend && npm run build
+
+# 代码检查
+cd frontend && npm run lint
+```
 
 ## 开发指南
 
@@ -247,6 +379,38 @@ VECTOR_STORE_PATH=./vector_store
 # LLM_PROVIDER=openai
 ```
 
+## 技术特性
+
+### 后端特性
+
+- **现代 Python 实践**: 使用 `datetime.now(timezone.utc)` 替代已弃用的 `datetime.utcnow()`
+- **类型安全**: SQLAlchemy 2.0+ 的 `Mapped[]` 类型注解
+- **依赖注入**: FastAPI 的 `Depends()` 实现数据库会话管理
+- **自动时间戳**: 创建和更新时间自动维护
+- **级联删除**: 工单删除自动清理相关回复
+- **枚举管理**: 使用 Python Enum 和 Literal 类型管理状态
+- **RESTful API**: 标准的 HTTP 方法和状态码
+- **参数验证**: Pydantic 自动验证请求数据
+
+### 前端特性
+
+- **TypeScript 严格模式**: 完整的类型定义和检查
+- **组件化开发**: 可复用的 React 组件
+- **路由管理**: React Router 实现单页应用导航
+- **状态管理**: React Hooks（useState, useEffect）
+- **响应式设计**: Ant Design 组件自适应布局
+- **错误处理**: 统一的 API 错误处理和用户提示
+- **开发代理**: Vite proxy 避免 CORS 问题
+- **热模块替换**: 开发时即时更新
+
+### 架构特性
+
+- **前后端分离**: 独立开发、部署、扩展
+- **API 优先**: RESTful API 设计
+- **数据库无关**: 通过 SQLAlchemy 支持多种数据库
+- **容器化就绪**: Docker 和 Docker Compose 配置
+- **环境配置**: 通过 .env 文件管理环境变量
+
 ## 部署
 
 ### Docker Compose (推荐)
@@ -255,6 +419,25 @@ VECTOR_STORE_PATH=./vector_store
 docker compose -f infra/docker-compose.yml up -d
 ```
 
-### 手动部署
+### 生产环境部署
 
-参考 `docs/deployment.md` (待补充)
+1. **后端部署**:
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+   ```
+
+2. **前端部署**:
+   ```bash
+   cd frontend
+   npm install
+   npm run build
+   # 将 dist/ 目录部署到静态服务器（Nginx, Caddy, etc.）
+   ```
+
+3. **数据库**: 切换到 PostgreSQL 或 MySQL
+   ```bash
+   # 修改 backend/.env
+   DATABASE_URL=postgresql://user:password@localhost:5432/astratickets
+   ```
