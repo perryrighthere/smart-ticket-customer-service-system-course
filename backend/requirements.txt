@@ -7,3 +7,4 @@ aiosqlite>=0.19
 python-dotenv>=1.0
 httpx>=0.24
 pytest>=7.4
+chromadb>=0.4.24

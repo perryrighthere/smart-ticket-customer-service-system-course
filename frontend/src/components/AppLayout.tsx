@@ -1,7 +1,7 @@
 import { Layout, Menu } from 'antd'
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { CSSProperties, PropsWithChildren } from 'react'
-import { HomeOutlined, FileTextOutlined, RocketOutlined } from '@ant-design/icons'
+import { HomeOutlined, FileTextOutlined, RocketOutlined, BookOutlined } from '@ant-design/icons'
 
 const { Header, Content, Footer } = Layout
 
@@ -49,6 +49,11 @@ function AppLayout({ children }: PropsWithChildren) {
       key: '/tickets',
       icon: <FileTextOutlined />,
       label: 'Tickets'
+    },
+    {
+      key: '/kb',
+      icon: <BookOutlined />,
+      label: 'Knowledge Base'
     }
   ]
 

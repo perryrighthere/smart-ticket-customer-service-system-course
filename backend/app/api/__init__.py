@@ -1,1 +1,2 @@
-"""API routers for AstraTickets."""
+"""API package root for AstraTickets (Lesson 2)."""
+

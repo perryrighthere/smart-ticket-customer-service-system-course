@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     database_url: str = "sqlite+aiosqlite:///./astratickets.db"
     vector_store_path: str = "./vector_store"
+    sentence_transformers_model: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

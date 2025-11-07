@@ -1,4 +1,4 @@
-.PHONY: bootstrap run-backend run-frontend test-backend dev-up
+.PHONY: bootstrap run-backend run-frontend test-backend dev-up embed-kb
 
 bootstrap:
 	./scripts/bootstrap.sh
@@ -14,3 +14,6 @@ test-backend:
 
 dev-up:
 	cd infra && docker compose up --build
+
+embed-kb:
+	python3 scripts/embed_kb.py --path samples/kb --collection kb_main
