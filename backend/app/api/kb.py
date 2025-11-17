@@ -98,38 +98,20 @@ def ingest_kb(payload: KBIngestRequest) -> KBIngestResponse:
 def search_kb(payload: KBQueryRequest) -> KBQueryResponse:
     _validate_collection_name(payload.collection)
     try:
-        # Extend store.similarity_search to also fetch IDs by reading raw response
-        # Here we call it and then re-query ids via another call; better to extend store,
-        # but keep minimal changes: call underlying collection.query directly is not exposed.
-        # Instead, we adjust store.similarity_search to return ids if available.
-        docs, metas, dists = similarity_search(query=payload.query, n_results=payload.n_results, collection=payload.collection)
+        ids, docs, metas, dists = similarity_search(
+            query=payload.query, n_results=payload.n_results, collection=payload.collection
+        )
     except Exception as e:  # chroma errors
         raise HTTPException(status_code=400, detail=str(e))
 
-    # Retrieve IDs by re-running the query: we want ids to enable deletion from UI.
-    # Avoid duplication of embeddings computation by using the same function again;
-    # but since store.similarity_search doesn't return ids, we reconstruct by calling chroma directly would need refactor.
-    # A pragmatic path: import store.get_collection and provider to query with texts instead.
-    from app.rag.store import get_collection, _get_provider  # type: ignore
-
-    col = get_collection(payload.collection)
-    qvec = _get_provider().embed_query(payload.query)
-    raw = col.query(query_embeddings=[qvec], n_results=payload.n_results)
-    ids_list = raw.get("ids")
-    if isinstance(ids_list, list) and ids_list and isinstance(ids_list[0], list):
-        ids = ids_list[0]
-    else:
-        ids = []
-
     matches = []
-    for i, (t, m, d) in enumerate(zip(docs, metas, dists)):
-        mid = ids[i] if i < len(ids) else None
+    for i, (id_val, doc, meta, dist) in enumerate(zip(ids, docs, metas, dists)):
         matches.append(
             KBMatch(
-                id=mid,
-                text=t,
-                metadata=m,
-                distance=(d if isinstance(d, (int, float)) else None),
+                id=id_val,
+                text=doc,
+                metadata=meta,
+                distance=(dist if isinstance(dist, (int, float)) else None),
             )
         )
     return KBQueryResponse(collection=payload.collection, query=payload.query, matches=matches)

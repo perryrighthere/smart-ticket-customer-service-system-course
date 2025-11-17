@@ -2,7 +2,7 @@ import axios from 'axios'
 
 export const apiClient = axios.create({
   baseURL: '/api',
-  timeout: 5000
+  timeout: 30000
 })
 
 export const fetchHealth = async () => {

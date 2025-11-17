@@ -10,6 +10,13 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./astratickets.db"
     vector_store_path: str = "./vector_store"
     sentence_transformers_model: str | None = None
+    # LLM / AI configuration (Lesson 5+)
+    llm_provider: str | None = None
+    llm_base_url: str | None = None
+    llm_model: str | None = None
+    openai_api_key: str | None = None
+    deepseek_api_key: str | None = None
+    qwen_api_key: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

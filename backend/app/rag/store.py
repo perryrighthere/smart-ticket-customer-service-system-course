@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """Chroma persistent store helpers for Lesson 4."""
 
+import numbers
 from typing import Any, Dict, List, Optional, Tuple
 
 import chromadb
@@ -82,8 +83,11 @@ def add_documents(
 
 
 def similarity_search(
-    query: str, n_results: int = 5, collection: str = "kb_main"
-) -> Tuple[List[str], List[Dict[str, Any] | None], List[float]]:
+    query: str,
+    n_results: int = 5,
+    collection: str = "kb_main",
+    distance_threshold: Optional[float] = None,
+) -> Tuple[List[str], List[str], List[Dict[str, Any] | None], List[float]]:
     col = get_collection(collection)
     provider = _get_provider()
     qvec = provider.embed_query(query)
@@ -99,13 +103,28 @@ def similarity_search(
             return v[0]
         return []
 
+    ids = _extract_first("ids")
     docs = _extract_first("documents")
     metas = _extract_first("metadatas")
     dists = _extract_first("distances")
-    # Ensure lengths align; pad distances with None-equivalent floats (0.0) if needed
+    # Ensure lengths align; pad distances with a high value for poor matches if needed
     if len(dists) < len(docs):
-        dists = dists + [0.0] * (len(docs) - len(dists))
-    return docs, metas, dists
+        dists = dists + [2.0] * (len(docs) - len(dists))
+
+    if distance_threshold is not None:
+        filtered_ids: List[str] = []
+        filtered_docs: List[str] = []
+        filtered_metas: List[Dict[str, Any] | None] = []
+        filtered_dists: List[float] = []
+        for id_val, doc, meta, dist in zip(ids, docs, metas, dists):
+            if isinstance(dist, numbers.Number) and dist < distance_threshold:
+                filtered_ids.append(id_val)
+                filtered_docs.append(doc)
+                filtered_metas.append(meta)
+                filtered_dists.append(dist)
+        return filtered_ids, filtered_docs, filtered_metas, filtered_dists
+
+    return ids, docs, metas, dists
 
 
 def delete_by_ids(ids: List[str], collection: str = "kb_main") -> int:

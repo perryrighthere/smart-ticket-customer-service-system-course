@@ -24,11 +24,20 @@ import {
   ArrowLeftOutlined,
   EditOutlined,
   DeleteOutlined,
-  SendOutlined
+  SendOutlined,
+  RobotOutlined
 } from '@ant-design/icons'
 import { ticketApi } from '../api/tickets'
 import { userApi } from '../api/users'
-import type { Ticket, Reply, User, TicketStatus, TicketPriority } from '../types'
+import { aiApi } from '../api/ai'
+import type {
+  Ticket,
+  Reply,
+  User,
+  TicketStatus,
+  TicketPriority,
+  TicketAISuggestionResponse
+} from '../types'
 
 const { Title, Paragraph } = Typography
 const { TextArea } = Input
@@ -55,6 +64,8 @@ function TicketDetail() {
   const [replies, setReplies] = useState<Reply[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiSuggestion, setAiSuggestion] = useState<TicketAISuggestionResponse | null>(null)
   const [replyForm] = Form.useForm()
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [editForm] = Form.useForm()
@@ -142,9 +153,86 @@ function TicketDetail() {
     })
   }
 
+  const handleGenerateAISuggestion = async () => {
+    if (!id) return
+    setAiLoading(true)
+    try {
+      let providerConfig: {
+        provider?: string
+        baseUrl?: string
+        model?: string
+        apiKey?: string
+      } = {}
+      try {
+        const stored = window.localStorage.getItem('astratickets_ai_client_config')
+        if (stored) {
+          providerConfig = JSON.parse(stored)
+        }
+      } catch {
+        // ignore malformed config; fall back to backend defaults
+      }
+      const suggestion = await aiApi.suggestForTicket(Number(id), {
+        collection: 'kb_main',
+        n_results: 3,
+        provider: providerConfig.provider,
+        base_url: providerConfig.baseUrl,
+        model: providerConfig.model,
+        api_key: providerConfig.apiKey
+      })
+      setAiSuggestion(suggestion)
+      message.success('AI suggestion generated')
+    } catch (error: any) {
+      console.error('Failed to generate AI suggestion', error)
+      const detail = error?.response?.data?.detail as string | undefined
+      const messageText = detail || 'Failed to generate AI suggestion'
+      message.error(messageText)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const handleApplyReplyFromAI = () => {
+    if (!aiSuggestion) return
+    replyForm.setFieldsValue({
+      content: aiSuggestion.ai_reply
+    })
+    message.success('AI reply applied to the reply form')
+  }
+
   const getUserName = (userId: number) => {
     const user = users.find((u) => u.id === userId)
     return user ? user.name || user.email : `User #${userId}`
+  }
+
+  const getCurrentProviderLabel = (): string => {
+    try {
+      const stored = window.localStorage.getItem('astratickets_ai_client_config')
+      if (!stored) {
+        return 'Backend defaults'
+      }
+      const parsed = JSON.parse(stored) as {
+        provider?: string
+      }
+      const provider = parsed.provider
+      if (!provider) {
+        return 'Backend defaults'
+      }
+      if (provider === 'local') {
+        return 'Local template'
+      }
+      if (provider === 'openai') {
+        return 'OpenAI compatible'
+      }
+      if (provider === 'deepseek') {
+        return 'DeepSeek (compatible)'
+      }
+      if (provider === 'qwen') {
+        return 'Qwen (compatible)'
+      }
+      return provider
+    } catch {
+      return 'Backend defaults'
+    }
   }
 
   if (!ticket) {
@@ -244,6 +332,82 @@ function TicketDetail() {
           </Descriptions>
 
         </Space>
+      </Card>
+
+      <Card
+        style={{ marginBottom: 16 }}
+        title={
+          <Space>
+            <RobotOutlined />
+            <span>AI Suggestion</span>
+          </Space>
+        }
+        extra={
+          <Space>
+            <Tag color="purple">Mode: {getCurrentProviderLabel()}</Tag>
+            <Button
+              type="primary"
+              onClick={handleGenerateAISuggestion}
+              loading={aiLoading}
+              icon={<RobotOutlined />}
+            >
+              Generate
+            </Button>
+          </Space>
+        }
+      >
+        {aiSuggestion ? (
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Space size="large">
+              <Space>
+                <span style={{ fontWeight: 600 }}>Category:</span>
+                <Tag>{aiSuggestion.category}</Tag>
+              </Space>
+              <Space>
+                <span style={{ fontWeight: 600 }}>Confidence:</span>
+                <span>{(aiSuggestion.confidence * 100).toFixed(1)}%</span>
+              </Space>
+              <Space>
+                <span style={{ fontWeight: 600 }}>Suggested Priority:</span>
+                <Tag color={priorityColors[aiSuggestion.suggested_priority]}>
+                  {aiSuggestion.suggested_priority.toUpperCase()}
+                </Tag>
+              </Space>
+            </Space>
+            <Space wrap>
+              <span style={{ fontWeight: 600 }}>Suggested Tags:</span>
+              {aiSuggestion.suggested_tags.map((tag) => (
+                <Tag key={tag}>{tag}</Tag>
+              ))}
+            </Space>
+            <div>
+              <Title level={5}>AI Draft Reply</Title>
+              <Paragraph style={{ whiteSpace: 'pre-wrap' }}>
+                {aiSuggestion.ai_reply}
+              </Paragraph>
+              <Button type="link" onClick={handleApplyReplyFromAI}>
+                Apply to reply form
+              </Button>
+            </div>
+            {aiSuggestion.kb_snippets.length > 0 && (
+              <div>
+                <Title level={5}>Knowledge Base Snippets</Title>
+                {aiSuggestion.kb_snippets.slice(0, 3).map((snippet, idx) => (
+                  <Paragraph
+                    key={idx}
+                    style={{ whiteSpace: 'pre-wrap', marginBottom: 8 }}
+                  >
+                    {snippet}
+                  </Paragraph>
+                ))}
+              </div>
+            )}
+          </Space>
+        ) : (
+          <Paragraph type="secondary">
+            Click &quot;Generate&quot; to let the AI classify this ticket and draft an initial reply.
+          </Paragraph>
+        )}
       </Card>
 
       <Card style={{ marginBottom: 16 }}>

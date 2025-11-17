@@ -67,3 +67,50 @@ export interface TicketListParams {
   page?: number
   page_size?: number
 }
+
+export interface TicketAISuggestionRequest {
+  collection?: string
+  n_results?: number
+  provider?: string
+  base_url?: string
+  model?: string
+  api_key?: string
+}
+
+export interface TicketAISuggestionResponse {
+  ticket_id: number
+  category: string
+  confidence: number
+  suggested_priority: TicketPriority
+  suggested_tags: string[]
+  ai_reply: string
+  kb_snippets: string[]
+}
+
+export type ChatRole = 'user' | 'assistant'
+
+export interface AIChatMessage {
+  role: ChatRole
+  content: string
+  kb_sources?: string[]
+  kb_snippets?: string[]
+}
+
+export interface AIChatRequest {
+  query: string
+  collection?: string
+  n_results?: number
+  distance_threshold?: number
+  history?: AIChatMessage[]
+  provider?: string
+  base_url?: string
+  model?: string
+  api_key?: string
+}
+
+export interface AIChatResponse {
+  query: string
+  answer: string
+  kb_sources: string[]
+  kb_snippets: string[]
+}
