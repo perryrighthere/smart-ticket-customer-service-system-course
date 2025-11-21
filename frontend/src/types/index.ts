@@ -114,3 +114,48 @@ export interface AIChatResponse {
   kb_sources: string[]
   kb_snippets: string[]
 }
+
+export interface TicketMessage {
+  id: number
+  ticket_id: number
+  sender_id: number
+  sender_type: 'user' | 'agent'
+  content: string
+  created_at: string
+}
+
+export interface TicketMessageCreate {
+  content: string
+}
+
+export interface ChatMessage {
+  id: number
+  session_id: number
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string
+}
+
+export interface ChatSession {
+  id: number
+  user_id?: number
+  title: string
+  created_at: string
+  updated_at: string
+  messages: ChatMessage[]
+}
+
+export interface ChatSessionCreate {
+  title: string
+}
+
+export interface ChatMessageRequest {
+  query: string
+  collection?: string
+  n_results?: number
+  distance_threshold?: number
+  provider?: string
+  base_url?: string
+  model?: string
+  api_key?: string
+}

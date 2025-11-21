@@ -28,7 +28,8 @@ import {
 } from '@ant-design/icons'
 import { ticketApi } from '../api/tickets'
 import { aiApi } from '../api/ai'
-import type { AIChatMessage, AIChatResponse } from '../types'
+import { chatApi } from '../api/chat'
+import type { AIChatMessage, AIChatResponse, ChatSession, ChatMessage as ChatMessageType } from '../types'
 
 const { Title, Paragraph } = Typography
 const { TextArea } = Input
@@ -51,12 +52,17 @@ function HomePage() {
     resolved: 0
   })
   const [aiConfigForm] = Form.useForm()
-  const [chatMessages, setChatMessages] = useState<AIChatMessage[]>([])
+
+  // Chat state - now using persistent sessions
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([])
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null)
+  const [chatMessages, setChatMessages] = useState<ChatMessageType[]>([])
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
 
   useEffect(() => {
     fetchStats()
+    fetchChatSessions()
     // load AI client config from localStorage for demo purposes
     try {
       const stored = window.localStorage.getItem('astratickets_ai_client_config')
@@ -117,6 +123,60 @@ function HomePage() {
     }
   }
 
+  const fetchChatSessions = async () => {
+    try {
+      const sessions = await chatApi.listSessions()
+      setChatSessions(sessions)
+
+      // Auto-select the most recent session if available
+      if (sessions.length > 0 && !currentSessionId) {
+        await loadSession(sessions[0].id)
+      }
+    } catch (error) {
+      console.error('Failed to fetch chat sessions:', error)
+    }
+  }
+
+  const loadSession = async (sessionId: number) => {
+    try {
+      const session = await chatApi.getSession(sessionId)
+      setCurrentSessionId(sessionId)
+      setChatMessages(session.messages)
+    } catch (error) {
+      console.error('Failed to load session:', error)
+      message.error('Failed to load chat session')
+    }
+  }
+
+  const handleNewChat = async () => {
+    try {
+      const newSession = await chatApi.createSession({ title: 'New Chat' })
+      setChatSessions([newSession, ...chatSessions])
+      setCurrentSessionId(newSession.id)
+      setChatMessages([])
+      message.success('New chat session created')
+    } catch (error) {
+      console.error('Failed to create chat session:', error)
+      message.error('Failed to create new chat')
+    }
+  }
+
+  const handleDeleteSession = async (sessionId: number) => {
+    try {
+      await chatApi.deleteSession(sessionId)
+      setChatSessions(chatSessions.filter(s => s.id !== sessionId))
+      if (currentSessionId === sessionId) {
+        setCurrentSessionId(null)
+        setChatMessages([])
+      }
+      message.success('Chat session deleted')
+    } catch (error) {
+      console.error('Failed to delete session:', error)
+      message.error('Failed to delete chat session')
+    }
+  }
+
+
   const handleSaveAIConfig = (values: {
     provider?: string
     baseUrl?: string
@@ -140,15 +200,25 @@ function HomePage() {
     }
   }
 
+
   const handleSendMessage = async () => {
     const trimmed = chatInput.trim()
     if (!trimmed) return
 
-    const newUserMessage: AIChatMessage = { role: 'user', content: trimmed }
-    const history = [...chatMessages, newUserMessage]
-    setChatMessages(history)
+    // Ensure we have a session
+    if (!currentSessionId) {
+      await handleNewChat()
+      // Wait a bit for the session to be created
+      await new Promise(resolve => setTimeout(resolve, 100))
+      if (!currentSessionId) {
+        message.error('Please create a chat session first')
+        return
+      }
+    }
+
     setChatInput('')
     setChatLoading(true)
+
     try {
       let providerConfig: {
         provider?: string
@@ -165,42 +235,36 @@ function HomePage() {
       } catch {
         // ignore malformed config; fall back to backend defaults
       }
+
       const payload = {
         query: trimmed,
         collection: 'kb_main',
         n_results: 4,
-        history,
         provider: providerConfig.provider,
         base_url: providerConfig.baseUrl,
         model: providerConfig.model,
         api_key: providerConfig.apiKey,
         distance_threshold: providerConfig.distanceThreshold
       }
-      const res: AIChatResponse = await aiApi.chat(payload)
-      const newAssistant: AIChatMessage = {
-        role: 'assistant',
-        content: res.answer,
-        kb_sources: res.kb_sources,
-        kb_snippets: res.kb_snippets
-      }
-      setChatMessages([...history, newAssistant])
+
+      // Send message and get AI response
+      const aiMessage = await chatApi.sendMessage(currentSessionId, payload)
+
+      // Reload the session to get updated messages
+      await loadSession(currentSessionId)
+
+      // Update sessions list to reflect updated_at
+      await fetchChatSessions()
     } catch (error: any) {
       console.error('Failed to chat with AI:', error)
       const detail = error?.response?.data?.detail as string | undefined
       const messageText = detail || 'Failed to generate AI response'
       message.error(messageText)
-      // Also surface the error in the conversation pane for transparency
-      setChatMessages([
-        ...history,
-        {
-          role: 'assistant',
-          content: `Error: ${messageText}`
-        }
-      ])
     } finally {
       setChatLoading(false)
     }
   }
+
 
   const getCurrentProviderLabel = (): string => {
     const provider: string | undefined = aiConfigForm.getFieldValue('provider')
@@ -347,6 +411,32 @@ function HomePage() {
                     label: 'Assistant',
                     children: (
                       <div>
+                        {/* Session Management */}
+                        <Space style={{ marginBottom: 12, width: '100%', justifyContent: 'space-between' }}>
+                          <Select
+                            style={{ width: 200 }}
+                            placeholder="Select chat session"
+                            value={currentSessionId}
+                            onChange={(value) => loadSession(value)}
+                            options={chatSessions.map(s => ({
+                              label: `${s.title} (${new Date(s.updated_at).toLocaleDateString()})`,
+                              value: s.id
+                            }))}
+                          />
+                          <Space>
+                            <Button size="small" onClick={handleNewChat}>New Chat</Button>
+                            {currentSessionId && (
+                              <Button
+                                size="small"
+                                danger
+                                onClick={() => handleDeleteSession(currentSessionId)}
+                              >
+                                Delete
+                              </Button>
+                            )}
+                          </Space>
+                        </Space>
+
                         <div
                           style={{
                             maxHeight: 260,
@@ -392,36 +482,6 @@ function HomePage() {
                                     textAlign: 'left'
                                   }}
                                 >
-                                  {m.role === 'assistant' &&
-                                    m.kb_sources &&
-                                    m.kb_sources.length > 0 && (
-                                      <div style={{ marginBottom: 8 }}>
-                                        <Collapse
-                                          size="small"
-                                          items={[
-                                            {
-                                              key: '1',
-                                              label: `Sources (${m.kb_sources.length})`,
-                                              children: (
-                                                <Paragraph
-                                                  style={{
-                                                    fontSize: 12,
-                                                    color: '#555',
-                                                    marginBottom: 0
-                                                  }}
-                                                >
-                                                  <ul style={{ paddingLeft: 16, margin: 0 }}>
-                                                    {m.kb_snippets?.map((s, i) => (
-                                                      <li key={i}>{s}</li>
-                                                    ))}
-                                                  </ul>
-                                                </Paragraph>
-                                              )
-                                            }
-                                          ]}
-                                        />
-                                      </div>
-                                    )}
                                   <span style={{ whiteSpace: 'pre-wrap' }}>{m.content}</span>
                                 </div>
                               </div>

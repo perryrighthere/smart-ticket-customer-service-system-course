@@ -31,7 +31,12 @@ class LLMConfigOverride:
     api_key: str | None = None
 
 
-def _build_prompt(ticket: Ticket, category: str, kb_snippets: List[str]) -> str:
+def _build_prompt(
+    ticket: Ticket,
+    category: str,
+    kb_snippets: List[str],
+    history: List[Tuple[str, str]] = None,
+) -> str:
     """Construct a concise English prompt for the assistant."""
     lines: List[str] = [
         "You are a helpful support agent.",
@@ -41,6 +46,13 @@ def _build_prompt(ticket: Ticket, category: str, kb_snippets: List[str]) -> str:
         f"Ticket content: {ticket.content}",
         f"Predicted category: {category}",
     ]
+
+    if history:
+        lines.append("")
+        lines.append("Conversation History:")
+        for sender, content in history:
+            lines.append(f"{sender}: {content}")
+
     if kb_snippets:
         lines.append("")
         lines.append("Relevant knowledge base snippets:")
@@ -184,13 +196,15 @@ def generate_reply(
     category: str,
     kb_snippets: List[str],
     override: Optional[LLMConfigOverride] = None,
+    history: List[Tuple[str, str]] = None,
 ) -> str:
     """Generate a draft reply using the configured LLM.
 
     If the LLM call fails or is misconfigured, an exception is raised.
     """
-    prompt = _build_prompt(ticket, category, kb_snippets)
+    prompt = _build_prompt(ticket, category, kb_snippets, history)
     return _call_openai_compatible_api(prompt, override=override)
+
 
 
 def generate_chat_answer(

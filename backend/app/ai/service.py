@@ -50,8 +50,33 @@ def generate_ticket_suggestion(
     except Exception:
         kb_snippets = []
 
+    # Collect conversation history
+    history: List[tuple[str, str]] = []
+    
+    # Add legacy replies
+    for reply in ticket.replies:
+        # Assuming author_id 1 is admin/agent, others are users? 
+        # Or just use "User" for all legacy replies if we can't distinguish easily without user lookup
+        # But TicketMessage has explicit sender_type.
+        # For simplicity, let's just use "Reply" or try to infer.
+        # Actually, let's focus on the new TicketMessage system which is the "Dialogue Context" feature.
+        pass
+
+    # Add new messages
+    # Sort by created_at
+    sorted_messages = sorted(ticket.messages, key=lambda m: m.created_at)
+    for msg in sorted_messages:
+        sender_label = "Agent" if msg.sender_type == "agent" else "User"
+        history.append((sender_label, msg.content))
+
     suggested_priority, suggested_tags = _map_category_to_priority_and_tags(cls_result.category)
-    reply_text = generate_reply(ticket, cls_result.category, kb_snippets, override=llm_override)
+    reply_text = generate_reply(
+        ticket, 
+        cls_result.category, 
+        kb_snippets, 
+        override=llm_override,
+        history=history
+    )
 
     return TicketAISuggestion(
         ticket_id=ticket.id,

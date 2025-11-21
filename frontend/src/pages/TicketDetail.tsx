@@ -36,7 +36,8 @@ import type {
   User,
   TicketStatus,
   TicketPriority,
-  TicketAISuggestionResponse
+  TicketAISuggestionResponse,
+  TicketMessage
 } from '../types'
 
 const { Title, Paragraph } = Typography
@@ -62,11 +63,13 @@ function TicketDetail() {
   const navigate = useNavigate()
   const [ticket, setTicket] = useState<Ticket | null>(null)
   const [replies, setReplies] = useState<Reply[]>([])
+  const [messages, setMessages] = useState<TicketMessage[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiSuggestion, setAiSuggestion] = useState<TicketAISuggestionResponse | null>(null)
   const [replyForm] = Form.useForm()
+  const [messageForm] = Form.useForm()
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [editForm] = Form.useForm()
 
@@ -74,6 +77,7 @@ function TicketDetail() {
     if (id) {
       fetchTicket()
       fetchReplies()
+      fetchMessages()
       fetchUsers()
     }
   }, [id])
@@ -101,6 +105,15 @@ function TicketDetail() {
     }
   }
 
+  const fetchMessages = async () => {
+    try {
+      const data = await ticketApi.listMessages(Number(id))
+      setMessages(data)
+    } catch (error) {
+      console.error('Failed to load messages:', error)
+    }
+  }
+
   const fetchUsers = async () => {
     try {
       const data = await userApi.list()
@@ -118,6 +131,21 @@ function TicketDetail() {
       fetchReplies()
     } catch (error) {
       message.error('Failed to add reply')
+      console.error(error)
+    }
+  }
+
+  const handleSendMessage = async (values: { content: string }) => {
+    // For demo, we pick the first user as sender or hardcode
+    // In real app, this comes from auth context
+    const senderId = users[0]?.id || 1
+    try {
+      await ticketApi.createMessage(Number(id), { content: values.content }, senderId, 'agent')
+      message.success('Message sent')
+      messageForm.resetFields()
+      fetchMessages()
+    } catch (error) {
+      message.error('Failed to send message')
       console.error(error)
     }
   }
@@ -193,10 +221,11 @@ function TicketDetail() {
 
   const handleApplyReplyFromAI = () => {
     if (!aiSuggestion) return
-    replyForm.setFieldsValue({
+    // Apply to message form instead of reply form
+    messageForm.setFieldsValue({
       content: aiSuggestion.ai_reply
     })
-    message.success('AI reply applied to the reply form')
+    message.success('AI reply applied to the message form')
   }
 
   const getUserName = (userId: number) => {
@@ -450,32 +479,85 @@ function TicketDetail() {
         }
       >
         <Form form={replyForm} layout="vertical" onFinish={handleAddReply}>
-              <Form.Item
-                name="author_id"
-                label="Author"
-                rules={[{ required: true, message: 'Please select author' }]}
-              >
-                <Select placeholder="Select author">
-                  {users.map((user) => (
-                    <Option key={user.id} value={user.id}>
-                      {user.name || user.email}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-              <Form.Item
-                name="content"
-                label="Reply Content"
-                rules={[{ required: true, message: 'Please enter reply content' }]}
-              >
-                <TextArea rows={4} placeholder="Enter your reply..." />
-              </Form.Item>
-              <Form.Item>
-                <Button type="primary" htmlType="submit" icon={<SendOutlined />}>
-                  Send Reply
-                </Button>
-              </Form.Item>
-            </Form>
+          <Form.Item
+            name="author_id"
+            label="Author"
+            rules={[{ required: true, message: 'Please select author' }]}
+          >
+            <Select placeholder="Select author">
+              {users.map((user) => (
+                <Option key={user.id} value={user.id}>
+                  {user.name || user.email}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="content"
+            label="Reply Content"
+            rules={[{ required: true, message: 'Please enter reply content' }]}
+          >
+            <TextArea rows={4} placeholder="Enter your reply..." />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" icon={<SendOutlined />}>
+              Send Reply
+            </Button>
+          </Form.Item>
+        </Form>
+      </Card>
+
+      <Card style={{ marginBottom: 16 }}>
+        <Title level={4} style={{ marginBottom: 16 }}>
+          Conversation ({messages.length})
+        </Title>
+        <List
+          dataSource={messages}
+          renderItem={(msg) => (
+            <List.Item style={{
+              padding: '16px 0',
+              justifyContent: msg.sender_type === 'agent' ? 'flex-end' : 'flex-start'
+            }}>
+              <div style={{
+                maxWidth: '80%',
+                background: msg.sender_type === 'agent' ? '#e6f7ff' : '#f5f5f5',
+                padding: '12px 16px',
+                borderRadius: 8,
+                border: msg.sender_type === 'agent' ? '1px solid #91d5ff' : '1px solid #d9d9d9'
+              }}>
+                <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 4, textAlign: msg.sender_type === 'agent' ? 'right' : 'left' }}>
+                  {msg.sender_type === 'agent' ? 'Agent' : 'User'} • {new Date(msg.created_at).toLocaleString()}
+                </div>
+                <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+              </div>
+            </List.Item>
+          )}
+          locale={{ emptyText: 'No messages yet' }}
+        />
+      </Card>
+
+      <Card
+        title={
+          <Space>
+            <SendOutlined />
+            <span>Send Message</span>
+          </Space>
+        }
+      >
+        <Form form={messageForm} layout="vertical" onFinish={handleSendMessage}>
+          <Form.Item
+            name="content"
+            label="Message Content"
+            rules={[{ required: true, message: 'Please enter message content' }]}
+          >
+            <TextArea rows={4} placeholder="Type your message here..." />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" icon={<SendOutlined />}>
+              Send Message
+            </Button>
+          </Form.Item>
+        </Form>
       </Card>
 
       {/* Edit Modal */}

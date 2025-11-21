@@ -8,7 +8,9 @@ import type {
   TicketUpdate,
   TicketListParams,
   Reply,
-  ReplyCreate
+  ReplyCreate,
+  TicketMessage,
+  TicketMessageCreate
 } from '../types'
 
 export const ticketApi = {
@@ -64,6 +66,24 @@ export const ticketApi = {
    */
   async listReplies(ticketId: number): Promise<Reply[]> {
     const response = await apiClient.get<Reply[]>(`/tickets/${ticketId}/replies`)
+    return response.data
+  },
+
+  /**
+   * List messages for a ticket
+   */
+  async listMessages(ticketId: number): Promise<TicketMessage[]> {
+    const response = await apiClient.get<TicketMessage[]>(`/tickets/${ticketId}/messages`)
+    return response.data
+  },
+
+  /**
+   * Create a message for a ticket
+   */
+  async createMessage(ticketId: number, data: TicketMessageCreate, senderId: number, senderType: 'user' | 'agent' = 'agent'): Promise<TicketMessage> {
+    const response = await apiClient.post<TicketMessage>(`/tickets/${ticketId}/messages`, data, {
+      params: { sender_id: senderId, sender_type: senderType }
+    })
     return response.data
   }
 }
