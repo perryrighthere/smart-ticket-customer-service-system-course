@@ -43,6 +43,9 @@ def get_session() -> Generator[Session, None, None]:
         yield session
 
 
+get_db = get_session
+
+
 def init_models() -> None:
     """Create all tables for Lesson 2 prototypes (no migrations)."""
     engine = _get_engine()

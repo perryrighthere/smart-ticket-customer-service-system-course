@@ -7,6 +7,8 @@ from app.api.kb import router as kb_router
 from app.api.ai import router as ai_router
 from app.api.messages import router as messages_router
 from app.api.chat import router as chat_router
+from app.api.auth import router as auth_router
+from app.api.stats import router as stats_router
 
 api_router = APIRouter()
 
@@ -16,3 +18,5 @@ api_router.include_router(kb_router, prefix="/kb", tags=["knowledge-base"])
 api_router.include_router(ai_router, prefix="/ai", tags=["ai"])
 api_router.include_router(messages_router, prefix="/tickets", tags=["messages"])
 api_router.include_router(chat_router, prefix="/chat", tags=["chat"])
+api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
+api_router.include_router(stats_router, prefix="/stats", tags=["stats"])
