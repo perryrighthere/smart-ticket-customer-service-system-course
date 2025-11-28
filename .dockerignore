@@ -1,0 +1,15 @@
+.git
+.gitignore
+backend
+data
+docs
+infra/chroma_data
+research
+samples
+scripts
+*.db
+astratickets.db
+frontend/node_modules
+frontend/dist
+frontend/.env
+.env

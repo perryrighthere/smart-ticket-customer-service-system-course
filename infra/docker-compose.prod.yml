@@ -1,0 +1,35 @@
+services:
+  backend:
+    build:
+      context: ../backend
+    env_file:
+      - ../backend/.env
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=sqlite+aiosqlite:///./data/astratickets.db
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_data:/app/data
+      - vector_store:/app/vector_store
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+  chroma:
+    image: ghcr.io/chroma-core/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/.chromadb
+
+volumes:
+  backend_data:
+  vector_store:
+  chroma_data:

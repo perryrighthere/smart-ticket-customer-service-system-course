@@ -1,0 +1,8 @@
+.git
+.gitignore
+node_modules
+dist
+*.log
+.npmrc
+pnpm-lock.yaml
+*.local

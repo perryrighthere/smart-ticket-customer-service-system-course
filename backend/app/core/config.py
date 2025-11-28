@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     deepseek_api_key: str | None = None
     qwen_api_key: str | None = None
+    secret_key: str = "lesson7-secret-key-change-me-in-production"
+    access_token_expire_minutes: int = 30
 
     model_config = SettingsConfigDict(
         env_file=".env",
