@@ -154,13 +154,29 @@ AstraTickets 是一个覆盖 **"来单 → 分类 → 检索 → AI 首答 → �
 
 ## 部署
 
-### Docker Compose (推荐)
+### Docker Compose（开发）
 
 ```bash
-docker compose -f infra/docker-compose.yml up -d
+make dev-up   # 等价于 cd infra && docker compose up --build
+make dev-down # 关闭开发态容器
 ```
 
-### 生产环境部署
+### Docker Compose（生产/演示）
+
+1. 准备环境变量：复制 `backend/.env.example` 为 `.env`，至少设置 `SECRET_KEY` 为随机字符串，可根据需要改为 PostgreSQL/MySQL 连接串。
+2. 构建并启动：
+   ```bash
+   make prod-up
+   # 或 cd infra && docker compose -f docker-compose.prod.yml up --build -d
+   ```
+   - 前端：`http://localhost:8080`
+   - 后端：`http://localhost:8000`（Swagger: `/docs`）
+3. 停止并清理：
+   ```bash
+   make prod-down
+   ```
+
+### 生产环境（手动部署）
 
 1. **后端部署**:
    ```bash

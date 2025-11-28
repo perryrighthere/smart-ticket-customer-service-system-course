@@ -5,10 +5,12 @@ from typing import Any, Union
 import bcrypt
 from jose import jwt
 
-# Configuration (In a real app, these should be in env vars)
-SECRET_KEY = "lesson7-secret-key-change-me-in-production"
+from app.core.config import get_settings
+
+settings = get_settings()
+SECRET_KEY = settings.secret_key
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
